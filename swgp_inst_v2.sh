@@ -132,7 +132,8 @@ esac
 if [ $arch_part == "arm64" ]; then
 	bin_file="swgp-go_arm64"
 elif [ $arch_part == "amd64" ]; then
-	bin_file="swgp-go_amd64_ub${os_version_main2}"
+	# bin_file="swgp-go_amd64_ub${os_version_main2}"
+	bin_file="swgp-go_amd64"
 fi
 
 if [ -f $bin_file ]; then
