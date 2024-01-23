@@ -221,7 +221,7 @@ if [[ -z $go_path_prof ]]; then
 	echo
 	echo -e "${green}Please run this command:"
 	echo -e "source $HOME/.profile"
-	echo -e "for apply PATH variable in current session${plain}"
+	echo -e "for apply PATH variable in current shell session${plain}"
 fi
 }
 
