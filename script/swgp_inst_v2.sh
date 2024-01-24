@@ -124,12 +124,19 @@ checkArchType
 case "$arch_type" in
 	"x86-64") 
 	arch_part="amd64"
+	bit_type="64-bit"
 	exec_type="x86-64"
 	;;
 	"arm64") 
 	arch_part="arm64"
+	bit_type="64-bit"
 	exec_type="aarch64"
 	;;
+	"arm") 
+	arch_part="arm"
+	bit_type="32-bit"
+	exec_type="arm,"	
+	;;			
 	*)
 	precomp_exist=0
 	precomp_good=0
@@ -144,7 +151,7 @@ elif [ $arch_part == "amd64" ]; then
 fi
 
 if [ -f $bin_file ]; then
-	exec_check=$(file $bin_file | grep -i executable | grep -i $exec_type)
+	exec_check=$(file $bin_file | grep -i $bit_type | grep -i $exec_type)
 	if [ ! -z $exec_check ]; then
 		precomp_exist=1
 		precomp_good=1
