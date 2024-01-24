@@ -89,8 +89,8 @@ elif [ $arch_part == "arm" ]; then
 fi
 
 if [ -f $bin_file ]; then
-	exec_chech=$(file $bin_file | grep -i $bit_type | grep -i $exec_type)
-	if [ ! -z exec_check ]; then
+	exec_check=$(file $bin_file | grep -i $bit_type | grep -i $exec_type)
+	if [ ! -z $exec_check ]; then
 		echo
 		echo -e "${green}PreCompiled bin file $bin_file exists!${plain}"
 		echo -e "${green}Platform checked - OK!${plain}"
@@ -218,8 +218,8 @@ fi
 
 # bin_file="swgp-go_${arch_part}"
 if [ -f $bin_file ]; then
-	exec_chech=$(file $bin_file | grep -i $bit_type | grep -i $exec_type)
-	if [ -z exec_check ]; then
+	exec_check=$(file $bin_file | grep -i $bit_type | grep -i $exec_type)
+	if [ -z $exec_check ]; then
 		echo
 		echo "File not good."
 		return
