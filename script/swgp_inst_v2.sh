@@ -84,6 +84,8 @@ if [ $arch_part == "arm64" ]; then
 elif [ $arch_part == "amd64" ]; then
 	# bin_file="swgp-go_amd64_ub${os_version_main2}"
 	bin_file="swgp-go_amd64"
+elif [ $arch_part == "arm" ]; then
+	bin_file="swgp-go_arm"
 fi
 
 if [ -f $bin_file ]; then
@@ -103,7 +105,7 @@ if [ -f $bin_file ]; then
 else
 	echo
 	echo -e "${red}PreCompiled Bin file $bin_file does not exist!${plain}"
-	echo -e "${red}Download it and put in current folder.${plain}"
+	# echo -e "${red}Download it and put in current folder.${plain}"
 	precomp_exist=0
 	precomp_good=0
 	return
@@ -148,6 +150,8 @@ if [ $arch_part == "arm64" ]; then
 elif [ $arch_part == "amd64" ]; then
 	# bin_file="swgp-go_amd64_ub${os_version_main2}"
 	bin_file="swgp-go_amd64"
+elif [ $arch_part == "arm" ]; then
+	bin_file="swgp-go_arm"
 fi
 
 if [ -f $bin_file ]; then
@@ -163,6 +167,14 @@ else
 	precomp_exist=0
 	precomp_good=0
 fi
+}
+
+function downloadSWGPbin() {
+bin_type=$1
+
+
+dl_url="https://github.com/Paulus13/SWGP/raw/main/bin/swgp-go_${bin_type}"
+wget $dl_url
 }
 
 function checkBinInstalled {
@@ -199,6 +211,22 @@ fi
 function useCompiledBin {
 checkCompiledBin
 if [ $precomp_good -eq 0 ]; then
+	echo
+	echo "Try download bin file"
+	downloadSWGPbin $arch_part
+fi
+
+bin_file="swgp-go_${arch_part}"
+if [ -f $bin_file ]; then
+	exec_chech=$(file $bin_file | grep -i $bit_type | grep -i $exec_type)
+	if [ -z exec_check ]; then
+		echo
+		echo "File not good."
+		return
+	fi
+else
+	echo
+	echo "Download unsuccessfull."
 	return
 fi
 
