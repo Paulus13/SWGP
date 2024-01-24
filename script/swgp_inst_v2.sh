@@ -216,7 +216,7 @@ if [ $precomp_good -eq 0 ]; then
 	downloadSWGPbin $arch_part
 fi
 
-bin_file="swgp-go_${arch_part}"
+# bin_file="swgp-go_${arch_part}"
 if [ -f $bin_file ]; then
 	exec_chech=$(file $bin_file | grep -i $bit_type | grep -i $exec_type)
 	if [ -z exec_check ]; then
