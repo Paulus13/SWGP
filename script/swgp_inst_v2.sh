@@ -61,12 +61,19 @@ checkArchType
 case "$arch_type" in
 	"x86-64") 
 	arch_part="amd64"
+	bit_type="64-bit"
 	exec_type="x86-64"
 	;;
 	"arm64") 
 	arch_part="arm64"
+	bit_type="64-bit"
 	exec_type="aarch64"
 	;;
+	"arm") 
+	arch_part="arm"
+	bit_type="32-bit"
+	exec_type="arm,"	
+	;;		
 	*)
 	echo "Unknown architecture. Exit."
 	Exit
@@ -80,7 +87,7 @@ elif [ $arch_part == "amd64" ]; then
 fi
 
 if [ -f $bin_file ]; then
-	exec_chech=$(file $bin_file | grep -i executable | grep -i $exec_type)
+	exec_chech=$(file $bin_file | grep -i $bit_type | grep -i $exec_type)
 	if [ ! -z exec_check ]; then
 		echo
 		echo -e "${green}PreCompiled bin file $bin_file exists!${plain}"
