@@ -60,7 +60,6 @@ fi
 }
 
 function checkBinInstalled2 {
-
 if [ -f /usr/bin/swgp-go ]; then
 	bin_inst=1
 else
