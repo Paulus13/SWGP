@@ -192,6 +192,9 @@ case "$arch_type" in
 	"arm64") 
 	os_part="arm64"
 	;;
+	"arm") 
+	os_part="armv6l"
+	;;	
 	*)
 	echo
 	echo -e "${red}Unknown architecture${plain}"
@@ -204,7 +207,8 @@ if [ -d /usr/local/go ]; then
 fi
 
 dl_url1="https://go.dev"
-dl_url2=$(curl -s "https://go.dev/dl/" | grep linux | grep $os_part | grep download | head -n1 | awk '{print $4}' | cut -d '=' -f 2 | sed 's/.$//' | sed 's/.$//' | sed 's/^.//')
+# dl_url2=$(curl -s "https://go.dev/dl/" | grep linux | grep $os_part | grep download | head -n1 | awk '{print $4}' | cut -d '=' -f 2 | sed 's/.$//' | sed 's/.$//' | sed 's/^.//')
+dl_url2=$(curl -s "https://go.dev/dl/" | grep linux | grep $os_part | grep download | head -n1 | awk '{print $4}' | cut -d '=' -f 2 | cut -d '>' -f 1 | sed 's/"//g')
 
 dl_url="${dl_url1}${dl_url2}"
 
