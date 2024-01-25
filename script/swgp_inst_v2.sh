@@ -172,7 +172,6 @@ fi
 function downloadSWGPbin() {
 bin_type=$1
 
-
 dl_url="https://github.com/Paulus13/SWGP/raw/main/bin/swgp-go_${bin_type}"
 wget $dl_url
 }
