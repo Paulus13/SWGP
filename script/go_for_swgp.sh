@@ -263,7 +263,6 @@ if [[ $git_checkout_last_tag -eq 1 ]]; then
 	git checkout $last_tag
 	echo
 	echo -e "${green}Now we are here:${plain}"
-	echo
 	git log --max-count=1
 	echo
 fi
