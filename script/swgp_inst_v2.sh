@@ -418,7 +418,8 @@ if [[ $git_checkout_last_tag -eq 1 ]]; then
 	last_tag=$(git tag | tail -n 1)
 	git checkout $last_tag
 	echo
-	echo "Now we are here:"
+	echo -e "${green}Now we are here:${plain}"
+	echo
 	git log --max-count=1
 	echo
 fi
