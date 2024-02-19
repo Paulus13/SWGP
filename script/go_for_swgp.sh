@@ -7,6 +7,8 @@ green='\033[1;32m'
 yellow='\033[1;33m'
 plain='\033[0m'
 
+git_checkout_last_tag=1
+
 function initialCheck() {
 if [ "$EUID" -ne 0 ]
   then echo "Please run as root"
@@ -254,6 +256,15 @@ if [ -d swgp-go ]; then
 else
 	git clone https://github.com/database64128/swgp-go.git
 	cd swgp-go
+fi
+
+if [[ $git_checkout_last_tag -eq 1 ]]; then
+	last_tag=$(git tag | tail -n 1)
+	git checkout $last_tag
+	echo
+	echo "Now we are here:"
+	git log --max-count=1
+	echo
 fi
 
 export CGO_ENABLED=0 
