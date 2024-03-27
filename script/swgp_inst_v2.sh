@@ -53,7 +53,7 @@ function checkCompiledBin {
 os_version_main=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | cut -d '.' -f 1)
 # os_version_main=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.' | cut -c 1-2)
 
-if [ $os_version_main -le 20 ]; then
+if [[ $os_version_main -le 20 ]]; then
 	os_version_main2=20
 else
 	os_version_main2=22
@@ -81,18 +81,18 @@ case "$arch_type" in
 	Exit
 esac
 
-if [ $arch_part == "arm64" ]; then
+if [[ $arch_part == "arm64" ]]; then
 	bin_file="swgp-go_arm64"
-elif [ $arch_part == "amd64" ]; then
+elif [[ $arch_part == "amd64" ]]; then
 	# bin_file="swgp-go_amd64_ub${os_version_main2}"
 	bin_file="swgp-go_amd64"
-elif [ $arch_part == "arm" ]; then
+elif [[ $arch_part == "arm" ]]; then
 	bin_file="swgp-go_arm"
 fi
 
-if [ -f $bin_file ]; then
+if [[ -f $bin_file ]]; then
 	exec_check=$(file $bin_file | grep -i $bit_type | grep -i $exec_type)
-	if [ ! -z $exec_check ]; then
+	if [[ ! -z $exec_check ]]; then
 		echo
 		echo -e "${green}PreCompiled bin file $bin_file exists!${plain}"
 		echo -e "${green}Platform checked - OK!${plain}"
@@ -118,7 +118,7 @@ function checkCompiledBin2 {
 os_version_main=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | cut -d '.' -f 1)
 # os_version_main=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.' | cut -c 1-2)
 
-if [ $os_version_main -le 20 ]; then
+if [[ $os_version_main -le 20 ]]; then
 	os_version_main2=20
 else
 	os_version_main2=22
@@ -147,18 +147,18 @@ case "$arch_type" in
 	return
 esac
 
-if [ $arch_part == "arm64" ]; then
+if [[ $arch_part == "arm64" ]]; then
 	bin_file="swgp-go_arm64"
-elif [ $arch_part == "amd64" ]; then
+elif [[ $arch_part == "amd64" ]]; then
 	# bin_file="swgp-go_amd64_ub${os_version_main2}"
 	bin_file="swgp-go_amd64"
-elif [ $arch_part == "arm" ]; then
+elif [[ $arch_part == "arm" ]]; then
 	bin_file="swgp-go_arm"
 fi
 
-if [ -f $bin_file ]; then
+if [[ -f $bin_file ]]; then
 	exec_check=$(file $bin_file | grep -i $bit_type | grep -i $exec_type)
-	if [ ! -z $exec_check ]; then
+	if [[ ! -z $exec_check ]]; then
 		precomp_exist=1
 		precomp_good=1
 	else
@@ -179,7 +179,7 @@ wget $dl_url
 }
 
 function checkBinInstalled {
-if [ -f /usr/bin/swgp-go ]; then
+if [[ -f /usr/bin/swgp-go ]]; then
 	echo
 	read -p  "File /usr/bin/swgp-go already exists. Replace it? [y/N]: " replace_bin
 	if [ -z $replace_bin ]
@@ -202,7 +202,7 @@ fi
 }
 
 function checkBinInstalled2 {
-if [ -f /usr/bin/swgp-go ]; then
+if [[ -f /usr/bin/swgp-go ]]; then
 	bin_inst=1
 else
 	bin_inst=0
@@ -211,16 +211,16 @@ fi
 
 function useCompiledBin {
 checkCompiledBin
-if [ $precomp_good -eq 0 ]; then
+if [[ $precomp_good -eq 0 ]]; then
 	echo
 	echo "Try download bin file"
 	downloadSWGPbin $arch_part
 fi
 
 # bin_file="swgp-go_${arch_part}"
-if [ -f $bin_file ]; then
+if [[ -f $bin_file ]]; then
 	exec_check=$(file $bin_file | grep -i $bit_type | grep -i $exec_type)
-	if [ -z $exec_check ]; then
+	if [[ -z $exec_check ]]; then
 		echo
 		echo "File not good."
 		return
@@ -264,7 +264,7 @@ fi
 function trunkGoVersion() {
 t_go_ver=$1
 dot_num=$(echo $t_go_ver | tr -cd '.' | wc -c)
-if [ $dot_num -gt 1 ]; then
+if [[ $dot_num -gt 1 ]]; then
 	go_ver_1=$(echo $t_go_ver |  awk -F. '{print $1}')
 	go_ver_2=$(echo $t_go_ver |  awk -F. '{print $2}')
 	go_ver_3=$(echo $t_go_ver |  awk -F. '{print $3}')
@@ -313,7 +313,7 @@ if [[ $go_installed -eq 1 ]]; then
 	if [[ $ver_enough -eq 1 ]]; then
 		echo -e "${green}Installed Go ver. $go_inst_ver is enough${plain}"
 		read -p  "Update it to the latest? [y/N]: " update_go
-		if [ -z $update_go ]
+		if [[ -z $update_go ]]
 		then
 			 update_go='N'
 		fi
@@ -364,7 +364,7 @@ case "$arch_type" in
 	exit
 esac
 
-if [ -d /usr/local/go ]; then
+if [[ -d /usr/local/go ]]; then
 	rm -rf /usr/local/go
 fi
 
@@ -405,7 +405,7 @@ if [[ $go_installed -eq 0 ]]; then
 	return
 fi
 
-if [ -d swgp-go ]; then
+if [[ -d swgp-go ]]; then
 	cd swgp-go
 	rm swgp-go
 	git pull
@@ -426,7 +426,7 @@ fi
 export CGO_ENABLED=0 
 go build -o swgp-go cmd/swgp-go/main.go
 
-if [ -f /lib/systemd/system/swgp-go.service ]; then
+if [[ -f /lib/systemd/system/swgp-go.service ]]; then
 	systemctl stop swgp-go.service
 	cp swgp-go /usr/bin
 	systemctl start swgp-go.service
@@ -440,7 +440,7 @@ cd ..
 function getExeFile() {
 
 # this function not needed
-if [ -f /usr/bin/swgp-go ]; then
+if [[ -f /usr/bin/swgp-go ]]; then
 	echo "Bin file already exists. Exit."
 	return
 fi
@@ -464,7 +464,7 @@ d_url="https://github.com/database64128/swgp-go/releases/download/${latest_rel}/
 d_file="swgp-go-${latest_rel}-${os_part}.tar.zst"
 
 wget $d_url 2>/dev/null
-if [ ! -f /usr/bin/zstd ]; then
+if [[ ! -f /usr/bin/zstd ]]; then
 	apt update -q
 	apt install -qy zstd
 fi
@@ -492,7 +492,7 @@ fi
 }
 
 function createService {
-if [ -f /lib/systemd/system/swgp-go.service ]; then
+if [[ -f /lib/systemd/system/swgp-go.service ]]; then
 	echo -e "${green}Service alresdy exists. Exit.${plain}"
 	return
 fi
@@ -514,7 +514,7 @@ systemctl daemon-reload
 }
 
 function getServPort {
-if [ -f $json_serv_path ]; then
+if [[ -f $json_serv_path ]]; then
 	list_port=$(grep proxyListen $json_serv_path | awk '{print $2}' | sed 's/"//g' | sed 's/://' | sed 's/,//')
 	serv_conf=1
 else
@@ -526,7 +526,7 @@ fi
 }
 
 function getServPSK {
-if [ -f $json_serv_path ]; then
+if [[ -f $json_serv_path ]]; then
 	t_psk=$(grep proxyPSK $json_serv_path | awk '{print $2}' | sed 's/"//g' | sed 's/://' | sed 's/,//')
 else
 	echo -e "${red}SWGP server not configured${plain}"
@@ -535,14 +535,14 @@ fi
 }
 
 function selectPort {
-if [ ! -z "$1" ]; then 
+if [[ ! -z "$1" ]]; then 
 	def_port=$1
 else
 	def_port=$list_port_serv_def
 fi
 
 read -rp "Enter Port what SWGP listen ([ENTER] set to default: $def_port): " list_port
-if [ -z $list_port ]; then
+if [[ -z $list_port ]]; then
 	list_port=$def_port
 fi
 
@@ -555,7 +555,7 @@ done
 }
 
 function validPort() {
-if [ -z "$1" ]; then 
+if [[ -z "$1" ]]; then 
 	return 1
 fi
 
@@ -572,12 +572,12 @@ fi
 }
 
 function isNumber() {
-if [ -z "$1" ]; then 
+if [[ -z "$1" ]]; then 
 	return 1
 fi
 
 var=$1
-if [ -n "$var" ] && [ "$var" -eq "$var" ] 2>/dev/null; then
+if [[ -n "$var" ]] && [[ "$var" -eq "$var" ]] 2>/dev/null; then
   #echo number
   is_num=1
   return 0
@@ -590,7 +590,7 @@ fi
 
 function selectPSK {
 read -rp "Enter PSK for SWGP ([ENTER] - Generate PSK): " t_psk
-if [ -z $t_psk ]; then
+if [[ -z $t_psk ]]; then
 	generatePSK
 	t_psk=$gen_psk
 fi
@@ -600,12 +600,12 @@ echo
 }
 
 function getLocalWGPort {
-if [ -f /usr/bin/wg ]; then
-	if [ -f /etc/wireguard/wg0.conf ]; then
+if [[ -f /usr/bin/wg ]]; then
+	if [[ -f /etc/wireguard/wg0.conf ]]; then
 		local_wg_port=$(cat /etc/wireguard/wg0.conf | grep -i listen | awk '{print $3}')
-	elif [ -f /etc/wireguard/wg1.conf ]; then
+	elif [[ -f /etc/wireguard/wg1.conf ]]; then
 		local_wg_port=$(cat /etc/wireguard/wg1.conf | grep -i listen | awk '{print $3}')
-	elif [ -f /etc/wireguard/wg2.conf ]; then
+	elif [[ -f /etc/wireguard/wg2.conf ]]; then
 		local_wg_port=$(cat /etc/wireguard/wg2.conf | grep -i listen | awk '{print $3}')
 	# else
 	# 	local_wg_port=$(wg | grep -A 4 wg0 | grep listening | awk '{print $3}')
@@ -630,13 +630,13 @@ function selectWGHostPort {
 read -rp "Enter WG server Host : " wg_host
 
 read -rp "Enter WG (swgp-go) server port ([ENTER] set to default: $list_port_serv_def): " wg_port
-if [ -z $wg_port ]; then
+if [[ -z $wg_port ]]; then
 	wg_port=$list_port_serv_def
 fi
 }
 
 function generatePSK {
-if [ ! -f /usr/bin/openssl ]; then
+if [[ ! -f /usr/bin/openssl ]]; then
 	apt install -y openssl
 fi
 
@@ -646,7 +646,7 @@ gen_psk=$(openssl rand -base64 32)
 function createSWGPConf {
 MENU_OPTION=0
 checkBinInstalled2
-if [ $bin_inst -eq 1 ]; then
+if [[ $bin_inst -eq 1 ]]; then
 	echo
 	echo "How to configure SWGP?"
 	echo "   1) As Server"	
@@ -678,7 +678,7 @@ fi
 }
 
 function createServerConf {
-if [ -f $json_serv_path ]; then
+if [[ -f $json_serv_path ]]; then
 	read -p "Configuration already exists. Reconfigure? [y/N]: " reconf
 	if [ -z $reconf ]
 	then
@@ -696,7 +696,7 @@ if [ -f $json_serv_path ]; then
 	fi
 fi
 
-if [ ! -d /etc/swgp-go ]; then
+if [[ ! -d /etc/swgp-go ]]; then
 	mkdir /etc/swgp-go
 fi
 
@@ -735,7 +735,7 @@ function showCliConf {
 ext_ip=$(dig @resolver4.opendns.com myip.opendns.com +short -4)
 
 list_port=$list_port_cli_def
-if [ -f $json_serv_path ]; then
+if [[ -f $json_serv_path ]]; then
 	list_port_real=$(grep proxyListen $json_serv_path | awk '{print $2}' | sed 's/"//g' | sed 's/://' | sed 's/,//')
 else
 	list_port_real=$list_port
@@ -745,7 +745,7 @@ wg_host=$ext_ip
 wg_port=$1
 t_psk=$2
 
-if [ -f tmp_cli_config.json ]; then
+if [[ -f tmp_cli_config.json ]]; then
 	rm tmp_cli_config.json
 fi
 
@@ -782,7 +782,7 @@ cat ./tmp_cli_config.json
 }
 
 function showCliConfMenu {
-if [ ! -f $json_serv_path ]; then
+if [[ ! -f $json_serv_path ]]; then
 	echo
 	echo -e "${green}SWGP server not configured${plain}"
 	return
@@ -801,7 +801,7 @@ showCliConf $local_wg_port $t_psk
 }
 
 function createClientConf {
-if [ -f $json_cli_path ]; then
+if [[ -f $json_cli_path ]]; then
 	read -p "Configuration already exists. Reconfigure? [y/N]: " reconf
 	if [ -z $reconf ]
 	then
@@ -818,13 +818,13 @@ if [ -f $json_cli_path ]; then
 	fi
 fi
 
-if [ ! -d /etc/swgp-go ]; then
+if [[ ! -d /etc/swgp-go ]]; then
 	mkdir /etc/swgp-go
 fi
 
-if [ -f config.json ]; then
+if [[ -f config.json ]]; then
 	read -p "File 'config.json' exists. Use it? [Y/n]: " use_tmp_conf
-	if [ -z $use_tmp_conf ]
+	if [[ -z $use_tmp_conf ]]
 	then
 		 use_tmp_conf='Y'
 	fi
@@ -838,9 +838,9 @@ if [ -f config.json ]; then
 		cp config.json $json_cli_path
 		return
 	fi
-elif [ -f tmp_cli_config.json ]; then
+elif [[ -f tmp_cli_config.json ]]; then
 	read -p "File 'tmp_cli_config.json' exists. Use it? [Y/n]: " use_tmp_conf
-	if [ -z $use_tmp_conf ]
+	if [[ -z $use_tmp_conf ]]
 	then
 		 use_tmp_conf='Y'
 	fi
@@ -909,7 +909,7 @@ if [[ ! -z $iptab_inst && -z $iptab_conf ]]; then
 	echo -e "${green}Add iptables rule${plain}"
 	iptables -A INPUT -p udp -m udp --dport $list_port -j ACCEPT
 	
-	if [ -f /etc/iptables/rules.v4 ]; then
+	if [[ -f /etc/iptables/rules.v4 ]]; then
 		echo -e "${green}Update FW rules files${plain}"
 		netfilter-persistent save
 		netfilter-persistent reload
@@ -932,7 +932,7 @@ if [[ ! -f /usr/bin/swgp-go || ! -f /etc/swgp-go/config.json ]]; then
 fi
 
 read -p "Remove SWGP? [y/N]: " rem_soft
-if [ -z $rem_soft ]
+if [[ -z $rem_soft ]]
 then
 	 rem_soft='N'
 fi
@@ -1010,7 +1010,7 @@ function manageMenu {
 	
 	if [[ $bin_inst -eq 0 ]]; then
 		config_menu="${red}   3) Configure SWGP (bin file not exist in /usr/bin)${plain}"
-	elif [ -f $json_serv_path ]; then
+	elif [[ -f $json_serv_path ]]; then
 		config_menu="${yellow}   3) Configure SWGP (config exist)${plain}"
 	else
 		config_menu="${green}   3) Configure SWGP${plain}"
@@ -1018,7 +1018,7 @@ function manageMenu {
 	
 	if [[ $bin_inst -eq 0 ]]; then
 		create_service_menu="${red}   4) Create swgp-go service (bin file not exist in /usr/bin)${plain}"
-	elif [ -f /lib/systemd/system/swgp-go.service ]; then
+	elif [[ -f /lib/systemd/system/swgp-go.service ]]; then
 		create_service_menu="${yellow}   4) Create swgp-go service (service exist)${plain}"
 	else
 		create_service_menu="${green}   4) Create swgp-go service${plain}"
@@ -1027,13 +1027,13 @@ function manageMenu {
 	fw_conf=$(iptables-save | grep INPUT)
 	if [[ -z $fw_conf ]]; then
 		check_firewall_menu="${red}   5) Check Firewall (Firewall not configured)${plain}"
-	elif [ -f $json_serv_path ]; then
+	elif [[ -f $json_serv_path ]]; then
 		check_firewall_menu="${green}   5) Check Firewall${plain}"
 	else
 		check_firewall_menu="${red}   5) Check Firewall (SWGP not configured)${plain}"
 	fi
 	
-	if [ -f $json_serv_path ]; then
+	if [[ -f $json_serv_path ]]; then
 		show_client_config_menu="${green}   6) Show client config for existing server side${plain}"
 	else
 		show_client_config_menu="${red}   6) Show client config for existing server side (SWGP server not configured)${plain}"
@@ -1078,7 +1078,7 @@ function manageMenu {
 		manageMenu
 		;;	
 	4)
-		if [ ! -f $json_serv_path ]; then
+		if [[ ! -f $json_serv_path ]]; then
 			echo
 			echo -e "${red}You must configure SWGP before create service.${plain}"
 			createSWGPConf		
@@ -1126,7 +1126,7 @@ function compileMenu {
 		go_inst=1
 		go_inst_ver=$(go version | awk '{print $3}' | sed 's/^go//')
 		
-		if [ $go_inst_ver == $latest_go_ver ]; then
+		if [[ $go_inst_ver == $latest_go_ver ]]; then
 			inst_menu="${yellow}   1) Update Go binary (latest version installed - $go_inst_ver)${plain}"
 		else
 			inst_menu="${green}   1) Update Go binary $go_inst_ver > $latest_go_ver${plain}"
