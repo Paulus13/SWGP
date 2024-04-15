@@ -481,7 +481,7 @@ cp swgp-go /usr/bin
 }
 
 function checkInstalled() {
-if [[ -f /lib/systemd/system/swgp-go.service ]]; then
+if [[ -f /lib/systemd/system/swgp-go.service || -f /lib/systemd/system/swgp-go@.service ]]; then
 	swgpInst=1
 else
 	swgpInst=0
@@ -521,7 +521,7 @@ function servtypeMenu {
 	echo 
 	echo "What service type you want use?"
 	echo "   1) Classic single service with one config"
-	echo "   2) Multiple servise with many configs"
+	echo "   2) Multiple service with many configs"
 	# until [[ -z $MENU_OPTION || $MENU_OPTION =~ ^[1-3]$ ]]; do
 	until [[ $MENU_OPTION =~ ^[1-2]$ ]]; do
 		read -rp "Select an option [1-2]: " MENU_OPTION
@@ -1122,12 +1122,12 @@ else
 	echo -e "${green}Remove SWGP...${plain}"
 fi
 
-getServType
+getServTypeSilent
 if [[ $serv_type -eq 1 ]]; then
 	systemctl stop swgp-go.service
 	systemctl disable swgp-go.service
 	systemctl unmask swgp-go.service
-elif [[ $serv_type -eq 1 ]]; then
+elif [[ $serv_type -eq 2 ]]; then
 	readarray myArr <<< $(systemctl | grep swgp | grep service | awk '{print $1}')
 	for i in ${myArr[@]}
 	do 
@@ -1203,42 +1203,52 @@ function manageMenu {
 		config_menu="${green}   3) Configure SWGP${plain}"
 	fi
 	
+	getServTypeSilent
+	if [[ $serv_type -eq 0 ]]; then
+		change_serv_menu="${red}   4) Change service type (service not installed)${plain}"
+	elif [[ $serv_type -eq 1 ]]; then
+		change_serv_menu="${green}   4) Change service type (1 -> 2)${plain}"
+	elif [[ $serv_type -eq 2 ]]; then
+		change_serv_menu="${red}   4) Change service type (changing 2 -> 1 not allowed)${plain}"
+	fi
+	
 	if [[ $bin_inst -eq 0 ]]; then
-		create_service_menu="${red}   4) Create swgp-go service (bin file not exist in /usr/bin)${plain}"
+		create_service_menu="${red}   5) Create swgp-go service (bin file not exist in /usr/bin)${plain}"
 	elif [[ -f /lib/systemd/system/swgp-go.service ]]; then
-		create_service_menu="${yellow}   4) Create swgp-go service (service exist)${plain}"
+		create_service_menu="${yellow}   5) Create swgp-go service (service exist)${plain}"
 	else
-		create_service_menu="${green}   4) Create swgp-go service${plain}"
+		create_service_menu="${green}   5) Create swgp-go service${plain}"
 	fi
 	
 	fw_conf=$(iptables-save | grep INPUT)
 	if [[ -z $fw_conf ]]; then
-		check_firewall_menu="${red}   5) Check Firewall (Firewall not configured)${plain}"
+		check_firewall_menu="${red}   6) Check Firewall (Firewall not configured)${plain}"
 	elif [[ -f $json_serv_path ]]; then
-		check_firewall_menu="${green}   5) Check Firewall${plain}"
+		check_firewall_menu="${green}   6) Check Firewall${plain}"
 	else
-		check_firewall_menu="${red}   5) Check Firewall (SWGP not configured)${plain}"
+		check_firewall_menu="${red}   6) Check Firewall (SWGP not configured)${plain}"
 	fi
 	
 	if [[ -f $json_serv_path ]]; then
-		show_client_config_menu="${green}   6) Show client config for existing server side${plain}"
+		show_client_config_menu="${green}   7) Show client config for existing server side${plain}"
 	else
-		show_client_config_menu="${red}   6) Show client config for existing server side (SWGP server not configured)${plain}"
+		show_client_config_menu="${red}   7) Show client config for existing server side (SWGP server not configured)${plain}"
 	fi	
 	
 	service_running=$(systemctl | grep swgp-go | grep service | grep running)
 	if [[ -z $service_running ]]; then
-		remove_menu="${red}   7) Remove SWGP (SWGP not installed)${plain}"
+		remove_menu="${red}   8) Remove SWGP (SWGP not installed)${plain}"
 	else
-		remove_menu="${green}   7) Remove SWGP${plain}"
+		remove_menu="${green}   8) Remove SWGP${plain}"
 	fi
 
-	exit_menu="${green}   8) Exit${plain}"
+	exit_menu="${green}   9) Exit${plain}"
 	
 	echo -e $use_precomp_menu
 	echo -e $comp_menu
 	echo -e $config_menu
 	echo -e $create_service_menu
+	echo -e $change_serv_menu
 	echo -e $check_firewall_menu
 	echo -e $show_client_config_menu
 	echo -e $remove_menu
@@ -1263,8 +1273,13 @@ function manageMenu {
 		createSWGPConf
 		MENU_OPTION=0
 		manageMenu
-		;;	
+		;;
 	4)
+		changeServType
+		MENU_OPTION=0
+		manageMenu
+		;;			
+	5)
 		if [[ ! -f $json_serv_path ]]; then
 			echo
 			echo -e "${red}You must configure SWGP before create service.${plain}"
@@ -1279,25 +1294,25 @@ function manageMenu {
 		MENU_OPTION=0
 		manageMenu
 		;;
-	5)
+	6)
 		getServPort
 		getLocalWGPort
 		checkFirewall
 		MENU_OPTION=0
 		manageMenu
 		;;	
-	6)
+	7)
 		showCliConfMenu
 		MENU_OPTION=0
 		manageMenu		
 		;;			
-	7)
+	8)
 		removeSWGP
 		MENU_OPTION=0
 		manageMenu
 		;;
 
-	8|"")
+	9|"")
 		exit 0
 		;;
 	esac
@@ -1357,6 +1372,47 @@ function compileMenu {
 		manageMenu
 		;;
 	esac
+}
+
+function changeServType {
+getServTypeSilent
+if [[ $serv_type -eq 0 ]]; then
+	echo
+	echo -e "${red}Service not installed${plain}"	
+	return
+elif [[ $serv_type -eq 1 ]]; then
+	json_type_server=$(cat $json_serv_path_type1 | grep '"servers":')
+	json_type_client=$(cat $json_cli_path_type1 | grep '"clients":')
+
+	systemctl stop swgp-go.service
+	systemctl disable swgp-go.service
+	systemctl unmask swgp-go.service
+	
+	sed -i 's,ExecStart=/usr/bin/swgp-go -confPath /etc/swgp-go/config.json -zapConf systemd,ExecStart=/usr/bin/swgp-go -confPath /etc/swgp-go/%i.json -zapConf systemd,' /lib/systemd/system/swgp-go.service
+	mv /lib/systemd/system/swgp-go.service /lib/systemd/system/swgp-go@.service
+	systemctl daemon-reload
+	
+	if [[ ! -z $json_type_server ]]; then
+		t_wg_port=$(cat $json_serv_path_type1 | grep wgEndpoint | awk '{print $2}' | awk -F: '{print $2}' | sed 's/",$//')
+		t_wg_int=$(grep ListenPort /etc/wireguard/wg*.conf | grep $t_wg_port | awk -F: '{print $1}' | sed 's,/etc/wireguard/,,' | sed 's,.conf,,')
+		wg_int_num=$(echo $t_wg_int | sed 's/wg//g')
+		json_serv_file="server${wg_int_num}"
+		json_serv_path_type2="/etc/swgp-go/${json_serv_file}.json"
+		
+		mv $json_serv_path_type1 $json_serv_path_type2
+		systemctl enable swgp-go@${json_serv_file}
+		systemctl start swgp-go@${json_serv_file}		
+	elif [[ ! -z $json_type_client ]]; then
+		mv $json_cli_path_type1 $json_cli_path_type2
+		systemctl enable swgp-go@client
+		systemctl start swgp-go@client
+	fi
+	
+elif [[ $serv_type -eq 2 ]]; then
+	echo
+	echo -e "${red}Changing type 2 -> 1 not allowed${plain}"
+	return
+fi
 }
 
 initialCheck
