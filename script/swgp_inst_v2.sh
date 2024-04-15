@@ -8,7 +8,7 @@ list_port_cli_def=20222
 json_serv_path_type1="/etc/swgp-go/config.json"
 json_cli_path_type1="/etc/swgp-go/config.json"
 
-json_serv_path_type2="/etc/swgp-go/server0.json"
+# json_serv_path_type2="/etc/swgp-go/server0.json"
 json_serv_path_type2_unitfile='/etc/swgp-go/%i.json'
 json_cli_path_type2="/etc/swgp-go/client.json"
 
@@ -551,11 +551,18 @@ if [[ -f /lib/systemd/system/swgp-go@.service ]]; then
 fi
 
 getServType
-selectWGIntForClients
 
-wg_int_num=$(echo $t_sel_wg | sed 's/wg//g')
-json_serv_path_type2="/etc/swgp-go/server${wg_int_num}.json"
-
+if [[ $serv_type -eq 2 ]]; then
+	selectWGIntForClients
+	wg_int_num=$(echo $t_sel_wg | sed 's/wg//g')
+	
+	serv_name="server${wg_int_num}"
+	serv_name_full="swgp-go@${serv_name}"
+	
+	json_serv_path_type2="/etc/swgp-go/${serv_name}.json"
+else
+	serv_name_full="swgp-go.service"
+fi
 setJsonPath
 
 if [[ $serv_type -eq 1 ]]; then
@@ -572,7 +579,7 @@ ExecStart=/usr/bin/swgp-go -confPath /etc/swgp-go/config.json -zapConf systemd
 WantedBy=multi-user.target
 EOF
 elif [[ $serv_type -eq 2 ]]; then
-cat > /lib/systemd/system/swgp-go.service << 'EOF'
+cat > /lib/systemd/system/swgp-go@.service << 'EOF'
 [Unit]
 Description=Simple WireGuard Proxy Service
 After=network-online.target
@@ -676,7 +683,12 @@ echo
 }
 
 function getLocalWGPort {
-selectWGIntForClients
+if [[ -z $1 ]]; then
+	selectWGIntForClients
+else
+	t_sel_wg=$1
+fi
+
 local_wg_port=$(cat /etc/wireguard/${t_sel_wg}.conf | grep -i listen | awk '{print $3}')
 
 wg_int_num=$(echo $t_sel_wg | sed 's/wg//g')
@@ -897,6 +909,9 @@ if [[ $serv_type -eq 1 ]]; then
 	json_serv_path=$json_serv_path_type1
 elif [[ $serv_type -eq 2 ]]; then
 	json_cli_path=$json_cli_path_type1
+	if [[ -z $json_serv_path_type2 ]]; then
+		json_serv_path_type2=$(ls /etc/swgp-go/server*.json | head -1)
+	fi
 	json_serv_path=$json_serv_path_type2
 fi
 }
@@ -952,10 +967,21 @@ cat ./tmp_cli_config.json
 }
 
 function showCliConfMenu {
-if [[ ! -f $json_serv_path ]]; then
-	echo
-	echo -e "${green}SWGP server not configured${plain}"
-	return
+getServTypeSilent
+if [[ $serv_type -eq 1 ]]; then
+	setJsonPath
+	if [[ ! -f $json_serv_path ]]; then
+		echo
+		echo -e "${green}SWGP server not configured${plain}"
+		return
+	fi
+elif [[ $serv_type -eq 2 ]]; then
+	selectWGIntForClients
+	wg_int_num=$(echo $t_sel_wg | sed 's/wg//g')
+	
+	serv_name="server${wg_int_num}"
+	json_serv_path_type2="/etc/swgp-go/${serv_name}.json"
+	setJsonPath
 fi
 
 conf_serv_line=$(grep servers $json_serv_path)
@@ -966,7 +992,7 @@ if [[ -z $conf_serv_line ]]; then
 fi
 
 getServPSK
-getLocalWGPort
+getLocalWGPort $t_sel_wg
 showCliConf $local_wg_port $t_psk
 }
 
@@ -1179,6 +1205,9 @@ function manageMenu {
 	# echo "   8) Remove SWGP"
 	# echo "   9) Exit"
 	
+	getServTypeSilent
+	setJsonPath
+	
 	checkCompiledBin2
 	if [[ $precomp_exist -eq 1 && $precomp_good -eq 1 ]]; then
 		use_precomp_menu="${green}   1) Use PreCompiled SWGP binary${plain}"
@@ -1203,21 +1232,21 @@ function manageMenu {
 		config_menu="${green}   3) Configure SWGP${plain}"
 	fi
 	
-	getServTypeSilent
-	if [[ $serv_type -eq 0 ]]; then
-		change_serv_menu="${red}   4) Change service type (service not installed)${plain}"
-	elif [[ $serv_type -eq 1 ]]; then
-		change_serv_menu="${green}   4) Change service type (1 -> 2)${plain}"
-	elif [[ $serv_type -eq 2 ]]; then
-		change_serv_menu="${red}   4) Change service type (changing 2 -> 1 not allowed)${plain}"
+	if [[ $bin_inst -eq 0 ]]; then
+		create_service_menu="${red}   4) Create swgp-go service (bin file not exist in /usr/bin)${plain}"
+	elif [[ -f /lib/systemd/system/swgp-go.service || -f /lib/systemd/system/swgp-go@.service ]]; then
+		create_service_menu="${yellow}   4) Create swgp-go service (service exist)${plain}"
+	else
+		create_service_menu="${green}   4) Create swgp-go service${plain}"
 	fi
 	
-	if [[ $bin_inst -eq 0 ]]; then
-		create_service_menu="${red}   5) Create swgp-go service (bin file not exist in /usr/bin)${plain}"
-	elif [[ -f /lib/systemd/system/swgp-go.service ]]; then
-		create_service_menu="${yellow}   5) Create swgp-go service (service exist)${plain}"
-	else
-		create_service_menu="${green}   5) Create swgp-go service${plain}"
+	# getServTypeSilent
+	if [[ $serv_type -eq 0 ]]; then
+		change_serv_menu="${red}   5) Change service type (service not installed)${plain}"
+	elif [[ $serv_type -eq 1 ]]; then
+		change_serv_menu="${green}   5) Change service type (1 > 2)${plain}"
+	elif [[ $serv_type -eq 2 ]]; then
+		change_serv_menu="${red}   5) Change service type (changing 2 > 1 not allowed)${plain}"
 	fi
 	
 	fw_conf=$(iptables-save | grep INPUT)
@@ -1254,8 +1283,8 @@ function manageMenu {
 	echo -e $remove_menu
 	echo -e $exit_menu
 	
-	until [[ $MENU_OPTION =~ ^[1-8]$ ]]; do
-		read -rp "Select an option [1-8]: " MENU_OPTION
+	until [[ $MENU_OPTION =~ ^[1-9]$ ]]; do
+		read -rp "Select an option [1-9]: " MENU_OPTION
 	done
 
 	case $MENU_OPTION in
@@ -1273,13 +1302,8 @@ function manageMenu {
 		createSWGPConf
 		MENU_OPTION=0
 		manageMenu
-		;;
+		;;	
 	4)
-		changeServType
-		MENU_OPTION=0
-		manageMenu
-		;;			
-	5)
 		if [[ ! -f $json_serv_path ]]; then
 			echo
 			echo -e "${red}You must configure SWGP before create service.${plain}"
@@ -1288,12 +1312,17 @@ function manageMenu {
 		
 		if [[ $bin_inst -eq 1 ]]; then
 			createService
-			systemctl start swgp-go.service
-			systemctl enable swgp-go.service
+			systemctl start $serv_name_full
+			systemctl enable $serv_name_full
 		fi
 		MENU_OPTION=0
 		manageMenu
 		;;
+	5)
+		changeServType
+		MENU_OPTION=0
+		manageMenu
+		;;				
 	6)
 		getServPort
 		getLocalWGPort
