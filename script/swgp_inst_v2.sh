@@ -4,8 +4,13 @@
 
 list_port_serv_def=20220
 list_port_cli_def=20222
-json_serv_path="/etc/swgp-go/config.json"
-json_cli_path="/etc/swgp-go/config.json"
+
+json_serv_path_type1="/etc/swgp-go/config.json"
+json_cli_path_type1="/etc/swgp-go/config.json"
+
+json_serv_path_type2="/etc/swgp-go/server0.json"
+json_serv_path_type2_unitfile='/etc/swgp-go/%i.json'
+json_cli_path_type2="/etc/swgp-go/client.json"
 
 red='\033[1;31m'
 green='\033[1;32m'
@@ -491,12 +496,69 @@ else
 fi
 }
 
+function getServType {
+if [[ -f /lib/systemd/system/swgp-go.service ]]; then
+	serv_type=1
+elif [[ -f /lib/systemd/system/swgp-go@.service ]]; then
+	serv_type=2
+else
+	servtypeMenu
+fi
+}
+
+function getServTypeSilent {
+if [[ -f /lib/systemd/system/swgp-go.service ]]; then
+	serv_type=1
+elif [[ -f /lib/systemd/system/swgp-go@.service ]]; then
+	serv_type=2
+else
+	serv_type=0
+fi
+}
+
+function servtypeMenu {
+	MENU_OPTION="menu"
+	echo 
+	echo "What service type you want use?"
+	echo "   1) Classic single service with one config"
+	echo "   2) Multiple servise with many configs"
+	# until [[ -z $MENU_OPTION || $MENU_OPTION =~ ^[1-3]$ ]]; do
+	until [[ $MENU_OPTION =~ ^[1-2]$ ]]; do
+		read -rp "Select an option [1-2]: " MENU_OPTION
+	done
+
+	case $MENU_OPTION in
+	1)
+		serv_type=1
+		;;
+	2)
+		serv_type=2
+		;;
+	esac
+}
+
 function createService {
 if [[ -f /lib/systemd/system/swgp-go.service ]]; then
 	echo -e "${green}Service alresdy exists. Exit.${plain}"
+	serv_type=1
 	return
 fi
 
+if [[ -f /lib/systemd/system/swgp-go@.service ]]; then
+	echo -e "${green}Service alresdy exists. Exit.${plain}"
+	serv_type=2
+	return
+fi
+
+getServType
+selectWGIntForClients
+
+wg_int_num=$(echo $t_sel_wg | sed 's/wg//g')
+json_serv_path_type2="/etc/swgp-go/server${wg_int_num}.json"
+
+setJsonPath
+
+if [[ $serv_type -eq 1 ]]; then
 cat > /lib/systemd/system/swgp-go.service << EOF
 [Unit]
 Description=Simple WireGuard Proxy Service
@@ -504,11 +566,25 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=/usr/bin/swgp-go -confPath $json_serv_path -zapConf systemd
+ExecStart=/usr/bin/swgp-go -confPath /etc/swgp-go/config.json -zapConf systemd
 
 [Install]
 WantedBy=multi-user.target
 EOF
+elif [[ $serv_type -eq 2 ]]; then
+cat > /lib/systemd/system/swgp-go.service << 'EOF'
+[Unit]
+Description=Simple WireGuard Proxy Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/swgp-go -confPath /etc/swgp-go/%i.json -zapConf systemd
+
+[Install]
+WantedBy=multi-user.target
+EOF
+fi
 
 systemctl daemon-reload
 }
@@ -600,30 +676,36 @@ echo
 }
 
 function getLocalWGPort {
-if [[ -f /usr/bin/wg ]]; then
-	if [[ -f /etc/wireguard/wg0.conf ]]; then
-		local_wg_port=$(cat /etc/wireguard/wg0.conf | grep -i listen | awk '{print $3}')
-	elif [[ -f /etc/wireguard/wg1.conf ]]; then
-		local_wg_port=$(cat /etc/wireguard/wg1.conf | grep -i listen | awk '{print $3}')
-	elif [[ -f /etc/wireguard/wg2.conf ]]; then
-		local_wg_port=$(cat /etc/wireguard/wg2.conf | grep -i listen | awk '{print $3}')
-	# else
-	# 	local_wg_port=$(wg | grep -A 4 wg0 | grep listening | awk '{print $3}')
-	fi
-else
-	# local_wg_port=0
-	read -rp "Enter Port what WG server ([ENTER] set to default: 53420): " local_wg_port
-	if [ -z $local_wg_port ]; then
-		local_wg_port=53420
-	fi
+selectWGIntForClients
+local_wg_port=$(cat /etc/wireguard/${t_sel_wg}.conf | grep -i listen | awk '{print $3}')
 
-	validPort $local_wg_port
-	until [[ $? -eq 0 ]]; do
-		echo $local_wg_port "looks like not good Port"
-		read -p "Enter the Port: " local_wg_port
-		validPort $local_wg_port
-	done	
-	fi
+wg_int_num=$(echo $t_sel_wg | sed 's/wg//g')
+json_serv_path_type2="/etc/swgp-go/server${wg_int_num}.json"
+
+# if [[ -f /usr/bin/wg ]]; then
+	# if [[ -f /etc/wireguard/wg0.conf ]]; then
+		# local_wg_port=$(cat /etc/wireguard/wg0.conf | grep -i listen | awk '{print $3}')
+	# elif [[ -f /etc/wireguard/wg1.conf ]]; then
+		# local_wg_port=$(cat /etc/wireguard/wg1.conf | grep -i listen | awk '{print $3}')
+	# elif [[ -f /etc/wireguard/wg2.conf ]]; then
+		# local_wg_port=$(cat /etc/wireguard/wg2.conf | grep -i listen | awk '{print $3}')
+	# # else
+	# # 	local_wg_port=$(wg | grep -A 4 wg0 | grep listening | awk '{print $3}')
+	# fi
+# else
+	# # local_wg_port=0
+	# read -rp "Enter Port what WG server ([ENTER] set to default: 53420): " local_wg_port
+	# if [ -z $local_wg_port ]; then
+		# local_wg_port=53420
+	# fi
+
+	# validPort $local_wg_port
+	# until [[ $? -eq 0 ]]; do
+		# echo $local_wg_port "looks like not good Port"
+		# read -p "Enter the Port: " local_wg_port
+		# validPort $local_wg_port
+	# done	
+# fi
 }
 
 function selectWGHostPort {
@@ -641,6 +723,81 @@ if [[ ! -f /usr/bin/openssl ]]; then
 fi
 
 gen_psk=$(openssl rand -base64 32)
+}
+
+function selectWGIntForClients {
+wg_conf_num=$(ls /etc/wireguard/wg*.conf 2>/dev/null | wc -l)
+if [[ $wg_conf_num -eq 0 ]]; then
+	t_sel_wg=""
+	echo
+	echo -e "${red}No WG interface exist.${plain}"
+	return
+fi
+
+wg_int_list_num=$(wg | grep interface | wc -l)
+wg_int_def=$(wg | grep interface | head -1 | awk '{print $2}')
+
+if [[ $wg_int_list_num -eq 1 ]]; then
+	t_sel_wg=$(wg | grep interface | awk '{print $2}')
+else
+	createWGIntListForClients
+	
+	echo 
+	echo "This WG interfaces exist: $t_list"
+	read -p "What interface use? default - $def_int_cl: " t_wg_int
+	if [ -z $t_wg_int ]
+	then
+		 t_wg_int=$def_int_cl
+	fi
+
+	checkWGIntExist $t_wg_int
+	until [[ $wg_int_exist -eq 1 ]]; do
+		echo "$t_wg_int: invalid selection."
+		read -p "What interface use? " t_wg_int
+		checkWGIntExist $t_wg_int
+	done
+	t_sel_wg=$t_wg_int
+fi
+}
+
+function createWGIntListForClients {
+t_list=""
+j=0
+
+readarray myArr <<< $(wg | grep interface | awk '{print $2}')
+for i in ${myArr[@]}
+do 
+	t_int=${i}
+	checkWGIntForClients $t_int
+	if [[ $wg_for_cl -eq 1 ]]; then
+		t_list="$t_list $t_int"
+		j=$j+1
+		if [[ $j -eq 1 ]]; then
+			def_int_cl=$t_int
+		fi
+	fi
+done
+}
+
+function checkWGIntExist {
+t_int=$1
+t_wg_line=$(wg | grep interface | grep $t_int)
+
+if [[ -z $t_wg_line ]]; then
+	wg_int_exist=0
+else
+	wg_int_exist=1
+fi
+}
+
+function checkWGIntForClients {
+t_wg_int_cl=$1
+wg_conf_ep_line=$(grep Endpoint /etc/wireguard/${t_wg_int_cl}.conf)
+if [[ ! -z $wg_conf_ep_line ]]; then
+	wg_for_cl=0
+else
+	wg_for_cl=1
+fi
 }
 
 function createSWGPConf {
@@ -705,6 +862,9 @@ getLocalWGPort
 checkFirewall
 selectPSK
 
+getServType
+setJsonPath
+
 cat > $json_serv_path << EOF
 {
     "servers": [
@@ -729,6 +889,16 @@ cat > $json_serv_path << EOF
 EOF
 
 showCliConf $local_wg_port $t_psk
+}
+
+function setJsonPath {
+if [[ $serv_type -eq 1 ]]; then
+	json_cli_path=$json_cli_path_type1
+	json_serv_path=$json_serv_path_type1
+elif [[ $serv_type -eq 2 ]]; then
+	json_cli_path=$json_cli_path_type1
+	json_serv_path=$json_serv_path_type2
+fi
 }
 
 function showCliConf {
@@ -924,7 +1094,8 @@ fi
 }
 
 function removeSWGP {
-if [[ ! -f /usr/bin/swgp-go || ! -f /etc/swgp-go/config.json ]]; then
+json_files_num=$(ls /etc/swgp-go/*.json | wc -l)
+if [[ ! -f /usr/bin/swgp-go || $json_files_num -eq 0 ]]; then
 	echo
 	echo -e "${red}SWGP not installed${plain}"
 	echo -e "${red}Nothing to remove${plain}"
@@ -951,9 +1122,21 @@ else
 	echo -e "${green}Remove SWGP...${plain}"
 fi
 
-systemctl stop swgp-go.service
-systemctl disable swgp-go.service
-systemctl unmask swgp-go.service
+getServType
+if [[ $serv_type -eq 1 ]]; then
+	systemctl stop swgp-go.service
+	systemctl disable swgp-go.service
+	systemctl unmask swgp-go.service
+elif [[ $serv_type -eq 1 ]]; then
+	readarray myArr <<< $(systemctl | grep swgp | grep service | awk '{print $1}')
+	for i in ${myArr[@]}
+	do 
+		t_serv=${i}
+		systemctl stop $t_serv
+		systemctl disable $t_serv
+		systemctl unmask $t_serv
+	done
+fi
 
 checkCompiledBin2
 if [[ $precomp_good -eq 0 ]]; then
@@ -962,7 +1145,11 @@ else
 	rm /usr/bin/swgp-go
 fi
 
-rm /lib/systemd/system/swgp-go.service
+if [[ $serv_type -eq 1 ]]; then
+	rm /lib/systemd/system/swgp-go.service
+elif [[ $serv_type -eq 1 ]]; then
+	rm /lib/systemd/system/swgp-go@.service
+fi
 
 # Config not delete
 # rm /etc/swgp-go/config.json
@@ -1039,7 +1226,7 @@ function manageMenu {
 		show_client_config_menu="${red}   6) Show client config for existing server side (SWGP server not configured)${plain}"
 	fi	
 	
-	service_running=$(systemctl status swgp-go.service 2>/dev/null | grep "active (running)")
+	service_running=$(systemctl | grep swgp-go | grep service | grep running)
 	if [[ -z $service_running ]]; then
 		remove_menu="${red}   7) Remove SWGP (SWGP not installed)${plain}"
 	else
