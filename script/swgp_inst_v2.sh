@@ -828,7 +828,8 @@ fi
 function checkWGIntForClients {
 t_wg_int_cl=$1
 wg_conf_ep_line=$(grep Endpoint /etc/wireguard/${t_wg_int_cl}.conf)
-if [[ ! -z $wg_conf_ep_line ]]; then
+wg_conf_obfus_line=$(grep ObfuscateKey /etc/wireguard/${t_wg_int_cl}.conf)
+if [[ ! -z $wg_conf_ep_line || ! -z $wg_conf_obfus_line ]]; then
 	wg_for_cl=0
 else
 	wg_for_cl=1
