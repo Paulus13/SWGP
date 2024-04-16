@@ -499,11 +499,18 @@ fi
 function getServType {
 if [[ -f /lib/systemd/system/swgp-go.service ]]; then
 	serv_type=1
+	return
 elif [[ -f /lib/systemd/system/swgp-go@.service ]]; then
 	serv_type=2
-else
-	servtypeMenu
+	return
+elif [[ -f /etc/swgp-go/client.json ]]; then
+	serv_type=2
+	return
+elif [[ $(ls /etc/swgp-go/server*.json | wc -l) -gt 0 ]]; then
+	serv_type=2
+	return	
 fi
+servtypeMenu
 }
 
 function getServTypeSilent {
@@ -511,6 +518,12 @@ if [[ -f /lib/systemd/system/swgp-go.service ]]; then
 	serv_type=1
 elif [[ -f /lib/systemd/system/swgp-go@.service ]]; then
 	serv_type=2
+elif [[ -f /etc/swgp-go/client.json ]]; then
+	serv_type=2
+	return
+elif [[ $(ls /etc/swgp-go/server*.json | wc -l) -gt 0 ]]; then
+	serv_type=2
+	return	
 else
 	serv_type=0
 fi
@@ -683,10 +696,13 @@ echo
 }
 
 function getLocalWGPort {
-if [[ -z $1 ]]; then
-	selectWGIntForClients
-else
-	t_sel_wg=$1
+getServTypeSilent
+if [[ $serv_type -eq 2 ]]; then
+	if [[ -z $1 ]]; then
+		selectWGIntForClients
+	else
+		t_sel_wg=$1
+	fi
 fi
 
 local_wg_port=$(cat /etc/wireguard/${t_sel_wg}.conf | grep -i listen | awk '{print $3}')
@@ -753,15 +769,17 @@ if [[ $wg_int_list_num -eq 1 ]]; then
 	t_sel_wg=$(wg | grep interface | awk '{print $2}')
 else
 	createWGIntListForClients
-	
-	echo 
-	echo "This WG interfaces exist: $t_list"
-	read -p "What interface use? default - $def_int_cl: " t_wg_int
-	if [ -z $t_wg_int ]
-	then
-		 t_wg_int=$def_int_cl
+	if [[ $j -eq 1 ]]; then
+		t_wg_int=$t_list
+	else
+		echo 
+		echo "This WG interfaces exist: $t_list"
+		read -p "What interface use? default - $def_int_cl: " t_wg_int
+		if [ -z $t_wg_int ]
+		then
+			 t_wg_int=$def_int_cl
+		fi
 	fi
-
 	checkWGIntExist $t_wg_int
 	until [[ $wg_int_exist -eq 1 ]]; do
 		echo "$t_wg_int: invalid selection."
@@ -782,7 +800,12 @@ do
 	t_int=${i}
 	checkWGIntForClients $t_int
 	if [[ $wg_for_cl -eq 1 ]]; then
-		t_list="$t_list $t_int"
+		if [[ -z $t_list ]]; then
+			t_list=$t_int
+		else
+			t_list="$t_list $t_int"
+		fi
+		
 		j=$j+1
 		if [[ $j -eq 1 ]]; then
 			def_int_cl=$t_int
@@ -847,6 +870,9 @@ fi
 }
 
 function createServerConf {
+getServType
+selectWGIntForClients
+setJsonPath
 if [[ -f $json_serv_path ]]; then
 	read -p "Configuration already exists. Reconfigure? [y/N]: " reconf
 	if [ -z $reconf ]
@@ -873,9 +899,6 @@ selectPort $list_port_serv_def
 getLocalWGPort
 checkFirewall
 selectPSK
-
-getServType
-setJsonPath
 
 cat > $json_serv_path << EOF
 {
@@ -908,11 +931,40 @@ if [[ $serv_type -eq 1 ]]; then
 	json_cli_path=$json_cli_path_type1
 	json_serv_path=$json_serv_path_type1
 elif [[ $serv_type -eq 2 ]]; then
-	json_cli_path=$json_cli_path_type1
+	json_cli_path=$json_cli_path_type2
 	if [[ -z $json_serv_path_type2 ]]; then
-		json_serv_path_type2=$(ls /etc/swgp-go/server*.json | head -1)
+		if [[ -z $t_sel_wg ]]; then
+			selectWGIntForClients
+		fi
+		wg_int_num=$(echo $t_sel_wg | sed 's/wg//g')
+		json_serv_path_type2="/etc/swgp-go/server${wg_int_num}.json"
+		# json_serv_path_type2=$(ls /etc/swgp-go/server*.json | head -1)
 	fi
 	json_serv_path=$json_serv_path_type2
+else
+	json_exist=$(ls /etc/swgp-go/*.json 2>/dev/null | wc -l)
+	if [[ $json_exist -gt 0 ]]; then
+		json_type1=$(ls /etc/swgp-go/config.json 2>/dev/null)
+		json_type2_cli=$(ls /etc/swgp-go/client.json 2>/dev/null)
+		json_type2_srv=$(ls /etc/swgp-go/server*.json 2>/dev/null | head -1)
+		if [[ ! -z $json_type1 ]]; then
+			json_cli_path=$json_cli_path_type1
+			json_serv_path=$json_serv_path_type1
+		elif [[ ! -z $json_type2_srv ]]; then
+			# json_type2_srv_num=$(ls $json_type2_srv | awk -F/ '{print $4}' | sed 's/server//' | sed 's/.json//')
+			if [[ -z $t_sel_wg ]]; then
+				selectWGIntForClients
+			fi
+			t_wg_num=$(echo $t_sel_wg | sed 's/wg//')
+			t_json_srv="/etc/swgp-go/server${t_wg_num}.json"
+			
+			json_cli_path=$json_cli_path_type2
+			json_serv_path=$t_json_srv
+		else
+			json_cli_path=$json_cli_path_type2
+			json_serv_path=""			
+		fi
+	fi
 fi
 }
 
@@ -969,6 +1021,7 @@ cat ./tmp_cli_config.json
 function showCliConfMenu {
 getServTypeSilent
 if [[ $serv_type -eq 1 ]]; then
+	selectWGIntForClients
 	setJsonPath
 	if [[ ! -f $json_serv_path ]]; then
 		echo
@@ -997,6 +1050,9 @@ showCliConf $local_wg_port $t_psk
 }
 
 function createClientConf {
+getServType
+setJsonPath
+
 if [[ -f $json_cli_path ]]; then
 	read -p "Configuration already exists. Reconfigure? [y/N]: " reconf
 	if [ -z $reconf ]
@@ -1217,6 +1273,10 @@ function manageMenu {
 		use_precomp_menu="${red}   1) Use PreCompiled SWGP binary (bin file not exist in current folder)${plain}"
 	fi
 	
+	if [[ -f /usr/bin/swgp-go ]]; then
+		use_precomp_menu="${yellow}   1) Use PreCompiled SWGP binary (file exist /usr/bin/swgp-go)${plain}"
+	fi
+	
 	checkBinInstalled2	
 	if [[ $bin_inst -eq 1 ]]; then
 		comp_menu="${yellow}   2) Compile SWGP binary using GoLang (file exist /usr/bin/swgp-go)${plain}"
@@ -1304,6 +1364,8 @@ function manageMenu {
 		manageMenu
 		;;	
 	4)
+		echo "serv_type: $serv_type"
+		echo "json_serv_path: $json_serv_path"
 		if [[ ! -f $json_serv_path ]]; then
 			echo
 			echo -e "${red}You must configure SWGP before create service.${plain}"
