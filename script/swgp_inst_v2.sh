@@ -754,6 +754,12 @@ gen_psk=$(openssl rand -base64 32)
 }
 
 function selectWGIntForClients {
+if [[ -z $1 ]]; then
+	t_silent=0
+else
+	t_silent=$1
+fi
+
 wg_conf_num=$(ls /etc/wireguard/wg*.conf 2>/dev/null | wc -l)
 if [[ $wg_conf_num -eq 0 ]]; then
 	t_sel_wg=""
@@ -772,12 +778,15 @@ else
 	if [[ $j -eq 1 ]]; then
 		t_wg_int=$t_list
 	else
-		echo 
-		echo "This WG interfaces exist: $t_list"
-		read -p "What interface use? default - $def_int_cl: " t_wg_int
-		if [ -z $t_wg_int ]
-		then
-			 t_wg_int=$def_int_cl
+		if [[ $t_silent -eq 0 ]]; then
+			echo 
+			echo "This WG interfaces exist: $t_list"
+			read -p "What interface use? default - $def_int_cl: " t_wg_int
+			if [ -z $t_wg_int ]; then
+				t_wg_int=$def_int_cl
+			fi
+		else
+			t_wg_int=$def_int_cl
 		fi
 	fi
 	checkWGIntExist $t_wg_int
@@ -928,6 +937,12 @@ showCliConf $local_wg_port $t_psk
 }
 
 function setJsonPath {
+if [[ -z $1 ]]; then
+	t_silent=0
+else
+	t_silent=$1
+fi
+
 if [[ $serv_type -eq 1 ]]; then
 	json_cli_path=$json_cli_path_type1
 	json_serv_path=$json_serv_path_type1
@@ -935,7 +950,7 @@ elif [[ $serv_type -eq 2 ]]; then
 	json_cli_path=$json_cli_path_type2
 	if [[ -z $json_serv_path_type2 ]]; then
 		if [[ -z $t_sel_wg ]]; then
-			selectWGIntForClients
+			selectWGIntForClients $t_silent
 		fi
 		wg_int_num=$(echo $t_sel_wg | sed 's/wg//g')
 		json_serv_path_type2="/etc/swgp-go/server${wg_int_num}.json"
@@ -954,7 +969,7 @@ else
 		elif [[ ! -z $json_type2_srv ]]; then
 			# json_type2_srv_num=$(ls $json_type2_srv | awk -F/ '{print $4}' | sed 's/server//' | sed 's/.json//')
 			if [[ -z $t_sel_wg ]]; then
-				selectWGIntForClients
+				selectWGIntForClients $t_silent
 			fi
 			t_wg_num=$(echo $t_sel_wg | sed 's/wg//')
 			t_json_srv="/etc/swgp-go/server${t_wg_num}.json"
@@ -1248,6 +1263,7 @@ echo -e "${green}SWGP removed${plain}"
 }
 
 function manageMenu {
+	MENU_OPTION=0
 	echo
 	echo -e "${green}Installation SWGP${plain}"
 	echo
@@ -1263,7 +1279,7 @@ function manageMenu {
 	# echo "   9) Exit"
 	
 	getServTypeSilent
-	setJsonPath
+	setJsonPath 1
 	
 	checkCompiledBin2
 	if [[ $precomp_exist -eq 1 && $precomp_good -eq 1 ]]; then
