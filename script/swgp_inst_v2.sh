@@ -497,6 +497,12 @@ fi
 }
 
 function getServType {
+if [[ -z $1 ]]; then
+	t_silent=0
+else
+	t_silent=$1
+fi
+
 if [[ -f /lib/systemd/system/swgp-go.service ]]; then
 	serv_type=1
 	return
@@ -510,20 +516,9 @@ elif [[ $(ls /etc/swgp-go/server*.json | wc -l) -gt 0 ]]; then
 	serv_type=2
 	return	
 fi
-servtypeMenu
-}
 
-function getServTypeSilent {
-if [[ -f /lib/systemd/system/swgp-go.service ]]; then
-	serv_type=1
-elif [[ -f /lib/systemd/system/swgp-go@.service ]]; then
-	serv_type=2
-elif [[ -f /etc/swgp-go/client.json ]]; then
-	serv_type=2
-	return
-elif [[ $(ls /etc/swgp-go/server*.json | wc -l) -gt 0 ]]; then
-	serv_type=2
-	return	
+if [[ $t_silent -eq 0 ]]; then
+	servtypeMenu
 else
 	serv_type=0
 fi
@@ -696,7 +691,7 @@ echo
 }
 
 function getLocalWGPort {
-getServTypeSilent
+getServType 1
 if [[ $serv_type -eq 2 ]]; then
 	if [[ -z $1 ]]; then
 		selectWGIntForClients
@@ -1035,7 +1030,7 @@ cat ./tmp_cli_config.json
 }
 
 function showCliConfMenu {
-getServTypeSilent
+getServType 1
 if [[ $serv_type -eq 1 ]]; then
 	selectWGIntForClients
 	setJsonPath
@@ -1174,7 +1169,8 @@ iptab_inst=$(iptables-save | grep $local_wg_port)
 iptab_conf=$(iptables-save | grep $list_port)
 
 if [[ ! -z $iptab_inst && -z $iptab_conf ]]; then
-	echo -e "${green}Add iptables rule${plain}"
+	echo -e "${green}Add iptables rule:${plain}"
+	echo -e "${green}-A INPUT -p udp -m udp --dport $list_port -j ACCEPT${plain}"
 	iptables -A INPUT -p udp -m udp --dport $list_port -j ACCEPT
 	
 	if [[ -f /etc/iptables/rules.v4 ]]; then
@@ -1185,7 +1181,8 @@ if [[ ! -z $iptab_inst && -z $iptab_conf ]]; then
 else
 	echo -e "${green}Iptables configuration not needed${plain}"
 	if [[ ! -z $iptab_conf ]]; then
-		echo -e "${green}Line exists:${plain}"
+		echo -e "${green}Lines exists:${plain}"
+		echo -e "${green}$iptab_inst${plain}"
 		echo -e "${green}$iptab_conf${plain}"
 	fi
 fi
@@ -1193,10 +1190,16 @@ fi
 
 function removeSWGP {
 json_files_num=$(ls /etc/swgp-go/*.json | wc -l)
+try_num=$(( try_num+1 ))
+
 if [[ ! -f /usr/bin/swgp-go || $json_files_num -eq 0 ]]; then
 	echo
 	echo -e "${red}SWGP not installed${plain}"
 	echo -e "${red}Nothing to remove${plain}"
+	return
+fi
+
+if [[ $try_num -lt 3 ]]; then
 	return
 fi
 
@@ -1220,7 +1223,7 @@ else
 	echo -e "${green}Remove SWGP...${plain}"
 fi
 
-getServTypeSilent
+getServType 1
 if [[ $serv_type -eq 1 ]]; then
 	systemctl stop swgp-go.service
 	systemctl disable swgp-go.service
@@ -1278,7 +1281,7 @@ function manageMenu {
 	# echo "   8) Remove SWGP"
 	# echo "   9) Exit"
 	
-	getServTypeSilent
+	getServType 1
 	setJsonPath 1
 	
 	checkCompiledBin2
@@ -1317,7 +1320,7 @@ function manageMenu {
 		create_service_menu="${green}   4) Create swgp-go service${plain}"
 	fi
 	
-	# getServTypeSilent
+	# getServType 1
 	if [[ $serv_type -eq 0 ]]; then
 		change_serv_menu="${red}   5) Change service type (service not installed)${plain}"
 	elif [[ $serv_type -eq 1 ]]; then
@@ -1483,7 +1486,7 @@ function compileMenu {
 }
 
 function changeServType {
-getServTypeSilent
+getServType 1
 if [[ $serv_type -eq 0 ]]; then
 	echo
 	echo -e "${red}Service not installed${plain}"	
