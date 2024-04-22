@@ -1498,8 +1498,7 @@ elif [[ $serv_type -eq 1 ]]; then
 		mv $json_cli_path_type1 $json_cli_path_type2
 		systemctl enable swgp-go@client
 		systemctl start swgp-go@client
-	fi
-	
+	fi	
 elif [[ $serv_type -eq 2 ]]; then
 	echo
 	echo -e "${red}Changing type 2 -> 1 not allowed${plain}"
