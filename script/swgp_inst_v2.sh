@@ -1381,8 +1381,8 @@ function manageMenu {
 		manageMenu
 		;;	
 	4)
-		echo "serv_type: $serv_type"
-		echo "json_serv_path: $json_serv_path"
+		# echo "serv_type: $serv_type"
+		# echo "json_serv_path: $json_serv_path"
 		if [[ ! -f $json_serv_path ]]; then
 			echo
 			echo -e "${red}You must configure SWGP before create service.${plain}"
