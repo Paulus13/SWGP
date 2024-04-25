@@ -512,7 +512,7 @@ elif [[ -f /lib/systemd/system/swgp-go@.service ]]; then
 elif [[ -f /etc/swgp-go/client.json ]]; then
 	serv_type=2
 	return
-elif [[ $(ls /etc/swgp-go/server*.json | wc -l) -gt 0 ]]; then
+elif [[ $(ls /etc/swgp-go/server*.json 2>/dev/null | wc -l) -gt 0 ]]; then
 	serv_type=2
 	return	
 fi
