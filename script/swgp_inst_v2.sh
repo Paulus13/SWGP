@@ -1504,8 +1504,13 @@ elif [[ $serv_type -eq 1 ]]; then
 	systemctl daemon-reload
 	
 	if [[ ! -z $json_type_server ]]; then
-		t_wg_port=$(cat $json_serv_path_type1 | grep wgEndpoint | awk '{print $2}' | awk -F: '{print $2}' | sed 's/",$//')
-		t_wg_int=$(grep ListenPort /etc/wireguard/wg*.conf | grep $t_wg_port | awk -F: '{print $1}' | sed 's,/etc/wireguard/,,' | sed 's,.conf,,')
+		t_wg_int_num=$(ls /etc/wireguard/wg*.conf 2>/dev/null | wc -l)
+		fi [[ $t_wg_int_num -eq 1 ]]; then
+			t_wg_int=$(ls /etc/wireguard/wg*.conf | sed 's,/etc/wireguard/,,' | sed 's,.conf,,')
+		elif [[ $t_wg_int_num -gt 1 ]]; then
+			t_wg_port=$(cat $json_serv_path_type1 | grep wgEndpoint | awk '{print $2}' | awk -F: '{print $2}' | sed 's/",$//')
+			t_wg_int=$(grep ListenPort /etc/wireguard/wg*.conf | grep $t_wg_port | awk -F: '{print $1}' | sed 's,/etc/wireguard/,,' | sed 's,.conf,,')
+		fi
 		wg_int_num=$(echo $t_wg_int | sed 's/wg//g')
 		json_serv_file="server${wg_int_num}"
 		json_serv_path_type2="/etc/swgp-go/${json_serv_file}.json"
