@@ -1505,7 +1505,7 @@ elif [[ $serv_type -eq 1 ]]; then
 	
 	if [[ ! -z $json_type_server ]]; then
 		t_wg_int_num=$(ls /etc/wireguard/wg*.conf 2>/dev/null | wc -l)
-		fi [[ $t_wg_int_num -eq 1 ]]; then
+		if [[ $t_wg_int_num -eq 1 ]]; then
 			t_wg_int=$(ls /etc/wireguard/wg*.conf | sed 's,/etc/wireguard/,,' | sed 's,.conf,,')
 		elif [[ $t_wg_int_num -gt 1 ]]; then
 			t_wg_port=$(cat $json_serv_path_type1 | grep wgEndpoint | awk '{print $2}' | awk -F: '{print $2}' | sed 's/",$//')
