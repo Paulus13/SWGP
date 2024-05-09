@@ -529,17 +529,18 @@ function servtypeMenu {
 	echo 
 	echo "What service type you want use?"
 	echo "   1) Classic single service with one config"
-	echo "   2) Multiple service with many configs"
-	# until [[ -z $MENU_OPTION || $MENU_OPTION =~ ^[1-3]$ ]]; do
-	until [[ $MENU_OPTION =~ ^[1-2]$ ]]; do
+	echo "   2) Multiple service with many configs (default)"
+	until [[ $MENU_OPTION =~ ^[1-2]$ || -z $MENU_OPTION ]]; do
 		read -rp "Select an option [1-2]: " MENU_OPTION
 	done
 
 	case $MENU_OPTION in
 	1)
+		echo "Create single service"
 		serv_type=1
 		;;
-	2)
+	2|"")
+		echo "Create multiple service"
 		serv_type=2
 		;;
 	esac
@@ -566,6 +567,11 @@ if [[ $serv_type -eq 2 ]]; then
 	
 	serv_name="server${wg_int_num}"
 	serv_name_full="swgp-go@${serv_name}"
+
+	echo "t_sel_wg: $t_sel_wg"
+	echo "wg_int_num: $wg_int_num"
+	echo "serv_name: $serv_name"
+	echo "serv_name_full: $serv_name_full"	
 	
 	json_serv_path_type2="/etc/swgp-go/${serv_name}.json"
 else
@@ -602,6 +608,8 @@ EOF
 fi
 
 systemctl daemon-reload
+systemctl start $serv_name_full
+systemctl enable $serv_name_full
 }
 
 function getServPort {
@@ -846,19 +854,21 @@ checkBinInstalled2
 if [[ $bin_inst -eq 1 ]]; then
 	echo
 	echo "How to configure SWGP?"
-	echo "   1) As Server"	
+	echo "   1) As Server (default)"	
 	echo "   2) As Client"
 	echo "   3) Cancel (return to main menu)"
 
-	until [[ $MENU_OPTION =~ ^[1-3]$ ]]; do
+	until [[ $MENU_OPTION =~ ^[1-3]$ || -z $MENU_OPTION ]]; do
 		read -rp "Select an option [1-3]: " MENU_OPTION
 	done
 
 	case $MENU_OPTION in
-	1)
+	1|"")
+		echo "Create server config"
 		createServerConf
 		;;	
 	2)
+		echo "Create client config"
 		createClientConf
 		;;
 	3)
