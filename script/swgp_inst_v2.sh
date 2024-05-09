@@ -536,11 +536,13 @@ function servtypeMenu {
 
 	case $MENU_OPTION in
 	1)
-		echo "Create single service"
+		echo
+		echo -e "${green}Create single service${plain}"
 		serv_type=1
 		;;
 	2|"")
-		echo "Create multiple service"
+		echo
+		echo -e "${green}Create multiple service${plain}"
 		serv_type=2
 		;;
 	esac
@@ -568,11 +570,6 @@ if [[ $serv_type -eq 2 ]]; then
 	serv_name="server${wg_int_num}"
 	serv_name_full="swgp-go@${serv_name}"
 
-	echo "t_sel_wg: $t_sel_wg"
-	echo "wg_int_num: $wg_int_num"
-	echo "serv_name: $serv_name"
-	echo "serv_name_full: $serv_name_full"	
-	
 	json_serv_path_type2="/etc/swgp-go/${serv_name}.json"
 else
 	serv_name_full="swgp-go.service"
@@ -640,6 +637,7 @@ else
 	def_port=$list_port_serv_def
 fi
 
+echo
 read -rp "Enter Port what SWGP listen ([ENTER] set to default: $def_port): " list_port
 if [[ -z $list_port ]]; then
 	list_port=$def_port
@@ -864,11 +862,13 @@ if [[ $bin_inst -eq 1 ]]; then
 
 	case $MENU_OPTION in
 	1|"")
-		echo "Create server config"
+		echo
+		echo -e "${green}Create server config${plain}"
 		createServerConf
 		;;	
 	2)
-		echo "Create client config"
+		echo
+		echo -e "${green}Create client config${plain}"
 		createClientConf
 		;;
 	3)
@@ -939,6 +939,43 @@ cat > $json_serv_path << EOF
 EOF
 
 showCliConf $local_wg_port $t_psk
+
+echo
+selectYesNo "Create service?" "Y"
+if [[ "$t_select" =~ ^[yY]*$ ]]; then
+	createService
+fi
+}
+
+function selectYesNo {
+t_select=""
+t_quest=$1
+
+if [[ -z $2 ]]; then
+	t_def_sel="Y"
+else
+	t_def_sel=$2
+fi
+
+case $t_def_sel in
+"y"|"Y")
+	t_sel_var="Y/n"
+	;;	
+"n"|"N")
+	t_sel_var="y/N"
+	;;
+esac
+
+read -p  "${t_quest} ${t_sel_var}: " t_select
+if [ -z $t_select ]
+then
+	t_select=$t_def_sel
+fi
+
+until [[ "$t_select" =~ ^[yYnN]*$ ]]; do
+	echo "$t_select: invalid selection."
+	read -p "${t_quest} [y/n]: " t_select
+done
 }
 
 function setJsonPath {
@@ -1155,6 +1192,11 @@ cat > $json_cli_path << EOF
     ]
 }
 EOF
+
+selectYesNo "Create service?" "Y"
+if [[ "$t_select" =~ ^[yY]*$ ]]; then
+	createService
+fi
 }
 
 function checkFirewall {
@@ -1404,8 +1446,8 @@ function manageMenu {
 		
 		if [[ $bin_inst -eq 1 ]]; then
 			createService
-			systemctl start $serv_name_full
-			systemctl enable $serv_name_full
+			# systemctl start $serv_name_full
+			# systemctl enable $serv_name_full
 		fi
 		MENU_OPTION=0
 		manageMenu
