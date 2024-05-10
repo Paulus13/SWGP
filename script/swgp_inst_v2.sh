@@ -186,17 +186,8 @@ wget $dl_url
 function checkBinInstalled {
 if [[ -f /usr/bin/swgp-go ]]; then
 	echo
-	read -p  "File /usr/bin/swgp-go already exists. Replace it? [y/N]: " replace_bin
-	if [ -z $replace_bin ]
-	then
-		 replace_bin='N'
-	fi
-
-	until [[ "$replace_bin" =~ ^[yYnN]*$ ]]; do
-		echo "$replace_bin: invalid selection."
-		read -p "Replace bin file? [y/n]: " replace_bin
-	done
-
+	selectYesNo "File /usr/bin/swgp-go already exists. Replace it?" "N"
+	replace_bin=$t_select
 	# if [[ "$replace_bin" =~ ^[nN]*$ ]]; then
 		# echo "Exit"
 		# return
@@ -317,17 +308,9 @@ if [[ $go_installed -eq 1 ]]; then
 	compareGoVer $go_inst_ver
 	if [[ $ver_enough -eq 1 ]]; then
 		echo -e "${green}Installed Go ver. $go_inst_ver is enough${plain}"
-		read -p  "Update it to the latest? [y/N]: " update_go
-		if [[ -z $update_go ]]
-		then
-			 update_go='N'
-		fi
-
-		until [[ "$update_go" =~ ^[yYnN]*$ ]]; do
-			echo "$update_go: invalid selection."
-			read -p "Update Go vesion? [y/n]: " update_go
-		done
-
+		selectYesNo "Update it to the latest?" "N"
+		update_go=$t_select
+		
 		if [[ "$update_go" =~ ^[nN]*$ ]]; then
 			return
 		fi
@@ -336,17 +319,9 @@ if [[ $go_installed -eq 1 ]]; then
 		echo -e "${green}Updating it to the latest version${plain}"
 	fi
 else
-	read -p  "Install GoLang? [Y/n]: " inst_go
-	if [ -z $inst_go ]
-	then
-		 inst_go='Y'
-	fi
-
-	until [[ "$inst_go" =~ ^[yYnN]*$ ]]; do
-		echo "$inst_go: invalid selection."
-		read -p "Install GoLang? [y/n]: " inst_go
-	done
-
+	selectYesNo "Install GoLang?" "Y"
+	inst_go=$t_select
+	
 	if [[ "$inst_go" =~ ^[nN]*$ ]]; then
 		echo
 		echo -e "${red}GoLang not installed${plain}"
@@ -889,17 +864,9 @@ getServType
 selectWGIntForClients
 setJsonPath
 if [[ -f $json_serv_path ]]; then
-	read -p "Configuration already exists. Reconfigure? [y/N]: " reconf
-	if [ -z $reconf ]
-	then
-		 reconf='N'
-	fi
-
-	until [[ "$reconf" =~ ^[yYnN]*$ ]]; do
-		echo "$reconf: invalid selection."
-		read -p "Reconfigure SWGP? [y/n]: " reconf
-	done
-
+	selectYesNo "Configuration already exists. Reconfigure?" "N"
+	reconf=$t_select
+	
 	if [[ "$reconf" =~ ^[nN]*$ ]]; then
 		echo "Exit"
 		exit
@@ -959,10 +926,14 @@ fi
 
 case $t_def_sel in
 "y"|"Y")
-	t_sel_var="Y/n"
+	t_sel_var="[Y/n]"
 	;;	
 "n"|"N")
-	t_sel_var="y/N"
+	t_sel_var="[y/N]"
+	;;
+*)
+	t_def_sel="Y"
+	t_sel_var="[Y/n]"
 	;;
 esac
 
@@ -1112,17 +1083,9 @@ getServType
 setJsonPath
 
 if [[ -f $json_cli_path ]]; then
-	read -p "Configuration already exists. Reconfigure? [y/N]: " reconf
-	if [ -z $reconf ]
-	then
-		 reconf='N'
-	fi
-
-	until [[ "$reconf" =~ ^[yYnN]*$ ]]; do
-		echo "$reconf: invalid selection."
-		read -p "Reconfigure SWGP? [y/n]: " reconf
-	done
-
+	selectYesNo "Configuration already exists. Reconfigure SWGP?" "N"
+	reconf=$t_select
+	
 	if [[ "$reconf" =~ ^[nN]*$ ]]; then
 		exit
 	fi
@@ -1133,32 +1096,16 @@ if [[ ! -d /etc/swgp-go ]]; then
 fi
 
 if [[ -f config.json ]]; then
-	read -p "File 'config.json' exists. Use it? [Y/n]: " use_tmp_conf
-	if [[ -z $use_tmp_conf ]]
-	then
-		 use_tmp_conf='Y'
-	fi
-
-	until [[ "$use_tmp_conf" =~ ^[yYnN]*$ ]]; do
-		echo "$use_tmp_conf: invalid selection."
-		read -p "Use 'config.json' file? [y/n]: " use_tmp_conf
-	done
+	selectYesNo "File 'config.json' exists. Use it?" "Y"
+	use_tmp_conf=$t_select
 
 	if [[ "$use_tmp_conf" =~ ^[yY]*$ ]]; then
 		cp config.json $json_cli_path
 		return
 	fi
 elif [[ -f tmp_cli_config.json ]]; then
-	read -p "File 'tmp_cli_config.json' exists. Use it? [Y/n]: " use_tmp_conf
-	if [[ -z $use_tmp_conf ]]
-	then
-		 use_tmp_conf='Y'
-	fi
-
-	until [[ "$use_tmp_conf" =~ ^[yYnN]*$ ]]; do
-		echo "$use_tmp_conf: invalid selection."
-		read -p "Use 'tmp_cli_config.json' file? [y/n]: " use_tmp_conf
-	done
+	selectYesNo "File 'tmp_cli_config.json' exists. Use it?" "Y"
+	use_tmp_conf=$t_select
 
 	if [[ "$use_tmp_conf" =~ ^[yY]*$ ]]; then
 		cp tmp_cli_config.json $json_cli_path
@@ -1255,16 +1202,8 @@ if [[ $try_num -lt 3 ]]; then
 	return
 fi
 
-read -p "Remove SWGP? [y/N]: " rem_soft
-if [[ -z $rem_soft ]]
-then
-	 rem_soft='N'
-fi
-
-until [[ "$rem_soft" =~ ^[yYnN]*$ ]]; do
-	echo "$rem_soft: invalid selection."
-	read -p "Remove SWGP? [y/n]: " rem_soft
-done
+selectYesNo "Remove SWGP?" "N"
+rem_soft=$t_select
 
 if [[ "$rem_soft" =~ ^[nN]*$ ]]; then
 	echo
