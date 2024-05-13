@@ -251,7 +251,7 @@ fi
 
 if [ -d swgp-go ]; then
 	cd swgp-go
-	rm ./swgp-go
+	rm ./swgp-go 2>/dev/null
 	git pull
 else
 	git clone https://github.com/database64128/swgp-go.git
@@ -268,22 +268,19 @@ fi
 if [[ $git_checkout_last_tag -eq 1 ]]; then
 	last_tag=$(git tag | tail -n 1)
 	git checkout $last_tag
-	echo
-	echo -e "${green}Now we are here:${plain}"
-	git log --max-count=1
-	echo
+
 else
 	if [[ $git_main -eq 0 ]]; then
 		git switch main
 	fi
 	git pull
-	
-	echo
-	echo -e "${green}Now we are here:${plain}"
-	git log --max-count=1
-	echo	
 fi
 
+echo
+echo -e "${green}Now we are here:${plain}"
+git log --max-count=1
+echo
+	
 export CGO_ENABLED=0 
 go build -o swgp-go cmd/swgp-go/main.go
 
