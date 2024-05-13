@@ -258,6 +258,13 @@ else
 	cd swgp-go
 fi
 
+git_main_str=$(git status | grep "origin/main")
+if [[ ! -z $git_main_str ]]; then
+	git_main=1
+else
+	git_main=0
+fi
+
 if [[ $git_checkout_last_tag -eq 1 ]]; then
 	last_tag=$(git tag | tail -n 1)
 	git checkout $last_tag
@@ -265,6 +272,16 @@ if [[ $git_checkout_last_tag -eq 1 ]]; then
 	echo -e "${green}Now we are here:${plain}"
 	git log --max-count=1
 	echo
+else
+	if [[ $git_main -eq 0 ]]; then
+		git switch main
+	fi
+	git pull
+	
+	echo
+	echo -e "${green}Now we are here:${plain}"
+	git log --max-count=1
+	echo	
 fi
 
 export CGO_ENABLED=0 
