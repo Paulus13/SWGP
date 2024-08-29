@@ -567,19 +567,6 @@ EOF
 }
 
 function createService {
-
-# if [[ -f /lib/systemd/system/swgp-go.service ]]; then
-	# echo -e "${green}Service alresdy exists. Exit.${plain}"
-	# serv_type=1
-	# return
-# fi
-
-# if [[ -f /lib/systemd/system/swgp-go@.service ]]; then
-	# echo -e "${green}Service alresdy exists. Exit.${plain}"
-	# serv_type=2
-	# return
-# fi
-
 getServType
 
 if [[ $serv_type -eq 2 ]]; then
