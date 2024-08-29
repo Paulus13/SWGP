@@ -600,9 +600,7 @@ if [[ $serv_type -eq 1 ]]; then
 		createServiceFile1
 		systemctl daemon-reload
 	fi
-	 
-	systemctl start swgp-go.service
-	systemctl enable swgp-go.service
+	checkService swgp-go.service
 elif [[ $serv_type -eq 2 ]]; then
 	if [[ ! -f /lib/systemd/system/swgp-go@.service ]]; then
 		createServiceFile2
@@ -614,12 +612,12 @@ elif [[ $serv_type -eq 2 ]]; then
 		t_serv_name=$(echo $i | awk -F. '{print $1}')
 		t_serv_name_full=swgp-go@${t_serv_name}.service
 		
-		checkServise $t_serv_name_full
+		checkService $t_serv_name_full
 	done
 fi
 }
 
-function checkServise {
+function checkService {
 t_service_name=$1
 
 t_service_active=$(systemctl status $t_service_name | grep "active (running)")
