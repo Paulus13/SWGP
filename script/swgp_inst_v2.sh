@@ -536,18 +536,49 @@ function servtypeMenu {
 	esac
 }
 
-function createService {
-if [[ -f /lib/systemd/system/swgp-go.service ]]; then
-	echo -e "${green}Service alresdy exists. Exit.${plain}"
-	serv_type=1
-	return
-fi
+function createServiceFile1 {
+cat > /lib/systemd/system/swgp-go.service << EOF
+[Unit]
+Description=Simple WireGuard Proxy Service
+After=network-online.target
+Wants=network-online.target
 
-if [[ -f /lib/systemd/system/swgp-go@.service ]]; then
-	echo -e "${green}Service alresdy exists. Exit.${plain}"
-	serv_type=2
-	return
-fi
+[Service]
+ExecStart=/usr/bin/swgp-go -confPath /etc/swgp-go/config.json -zapConf systemd
+
+[Install]
+WantedBy=multi-user.target
+EOF
+}
+
+function createServiceFile2 {
+cat > /lib/systemd/system/swgp-go@.service << 'EOF'
+[Unit]
+Description=Simple WireGuard Proxy Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/swgp-go -confPath /etc/swgp-go/%i.json -zapConf systemd
+
+[Install]
+WantedBy=multi-user.target
+EOF
+}
+
+function createService {
+
+# if [[ -f /lib/systemd/system/swgp-go.service ]]; then
+	# echo -e "${green}Service alresdy exists. Exit.${plain}"
+	# serv_type=1
+	# return
+# fi
+
+# if [[ -f /lib/systemd/system/swgp-go@.service ]]; then
+	# echo -e "${green}Service alresdy exists. Exit.${plain}"
+	# serv_type=2
+	# return
+# fi
 
 getServType
 
@@ -565,36 +596,42 @@ fi
 setJsonPath
 
 if [[ $serv_type -eq 1 ]]; then
-cat > /lib/systemd/system/swgp-go.service << EOF
-[Unit]
-Description=Simple WireGuard Proxy Service
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-ExecStart=/usr/bin/swgp-go -confPath /etc/swgp-go/config.json -zapConf systemd
-
-[Install]
-WantedBy=multi-user.target
-EOF
+	if [[ ! -f /lib/systemd/system/swgp-go.service ]]; then
+		createServiceFile1
+		systemctl daemon-reload
+	fi
+	 
+	systemctl start swgp-go.service
+	systemctl enable swgp-go.service
 elif [[ $serv_type -eq 2 ]]; then
-cat > /lib/systemd/system/swgp-go@.service << 'EOF'
-[Unit]
-Description=Simple WireGuard Proxy Service
-After=network-online.target
-Wants=network-online.target
+	if [[ ! -f /lib/systemd/system/swgp-go@.service ]]; then
+		createServiceFile2
+		systemctl daemon-reload
+	fi
+	
+	for i in `ls /etc/swgp-go/`
+	do
+		t_serv_name=$(echo $i | awk -F. '{print $1}')
+		t_serv_name_full=swgp-go@${t_serv_name}.service
+		
+		checkServise $t_serv_name_full
+	done
+fi
+}
 
-[Service]
-ExecStart=/usr/bin/swgp-go -confPath /etc/swgp-go/%i.json -zapConf systemd
+function checkServise {
+t_service_name=$1
 
-[Install]
-WantedBy=multi-user.target
-EOF
+t_service_active=$(systemctl status $t_service_name | grep "active (running)")
+t_service_enable=$(systemctl status $t_service_name | grep "active (running)")
+
+if [[ -z $t_service_active ]]; then
+	systemctl start t_service_name
 fi
 
-systemctl daemon-reload
-systemctl start $serv_name_full
-systemctl enable $serv_name_full
+if [[ -z $t_service_enable ]]; then
+	systemctl enable t_service_name
+fi
 }
 
 function getServPort {
@@ -682,6 +719,14 @@ fi
 echo
 echo "PSK: $t_psk"
 echo
+}
+
+function getWanIP {
+t_wan_ip=$(dig @resolver4.opendns.com myip.opendns.com +short -4)
+if [[ -z $t_wan_ip ]]; then
+	read wan_name < /etc/wireguard/wan_interface_name.var
+	t_wan_ip=$(ip a | grep $wan_name | grep inet | awk '{print $2}' | sed -r 's/\/.+//g')
+fi
 }
 
 function getLocalWGPort {
@@ -1011,7 +1056,7 @@ fi
 }
 
 function showCliConf {
-ext_ip=$(dig @resolver4.opendns.com myip.opendns.com +short -4)
+getWanIP
 
 list_port=$list_port_cli_def
 if [[ -f $json_serv_path ]]; then
@@ -1020,7 +1065,7 @@ else
 	list_port_real=$list_port
 fi
 
-wg_host=$ext_ip
+wg_host=$t_wan_ip
 wg_port=$1
 t_psk=$2
 
